@@ -1,7 +1,7 @@
 """
 find close reference
 """
-import argparse, io
+import argparse, io, os
 from treetime import TreeAnc
 import numpy as np
 from Bio.SeqIO.FastaIO import SimpleFastaParser
@@ -186,6 +186,9 @@ def export_tree(T, metadata):
     None.
 
     """
+    if not os.path.isdir('exports'):
+        os.mkdir('exports')
+
     Phylo.write(T, 'exports/tree.nwk', 'newick')
     with open('exports/metadata.json', 'w') as out_file:
         json.dump(metadata, out_file)
@@ -280,7 +283,7 @@ if __name__ == '__main__':
     parser.add_argument("--alignment", type=str, required=False, help="FASTA file of alignment")
     parser.add_argument("--tree", type=str, required = False, help="nwk file of focal alignment tree")
     parser.add_argument("--metadata", type=str, required = False, help="json file of focal alignment tree metadata")
-    parser.add_argument("--export", type=bool, default=False , required=False, help="export tree and metadata to tree.nwk and metadata.json")
+    parser.add_argument("--export", action="store_true", default=False , required=False, help="export tree and metadata to tree.nwk and metadata.json")
     parser.add_argument("--method", type=str, default='recursive', required=False, choices=['brute', 'recursive'], help="choose between brute force search or recursive search")
     parser.add_argument("--margin", type=int, default = 6 ,required = False, help="margin for iterative search")
     parser.add_argument("--output", type=str, required=False, help="table with closest sequences")
