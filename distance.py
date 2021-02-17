@@ -16,7 +16,7 @@ def get_distance(n, s_diffs, Ns):
     ----------
     n : Clade
         Clade of the focal alignment tree.
-    s_diffs : set of tuples (int, str) 
+    s_diffs : set of tuples (int, str)
         differences of input sequence to reference sequence.
     Ns : set of int
         positions in input sequence which contain ambiguous bases or gap characters.
@@ -43,7 +43,7 @@ def get_differences(s, ref):
     -------
     set of differences, set of Ns
         set of differences (int, str) between the input sequence and the reference sequence ,
-        contains the position and the mutated base of the input sequence. 
+        contains the position and the mutated base of the input sequence.
         set of Ns (int) contains the positions in the input sequence with ambiguous or gap
         characters.
 
@@ -66,7 +66,7 @@ def remove_close_children(T):
         phylogenetic tree where all similar Clades are pruned.
 
     """
-    n_kids = 0 
+    n_kids = 0
     for n in T.find_clades(order='postorder'):
         identical_kids = []
         for c in n.clades:
@@ -87,12 +87,12 @@ def find_closest(T, s_diffs, Ns, margin):
     Iterative algorithm to find closest Clade in phylogenetic tree of focal-alignment
     given input sequence data and a margin value which defines the search radius.
     Low margin --> greedy search
-    
+
     Parameters
     ----------
     T : Bio.Phylo.Newick.Tree
         phylogenetic tree of focal-alignment.
-    s_diffs : set of tuples (int, str) 
+    s_diffs : set of tuples (int, str)
         differences of input sequence to reference sequence.
     Ns : set of int
         positions in input sequence which contain ambiguous bases or gap characters.
@@ -110,7 +110,7 @@ def find_closest(T, s_diffs, Ns, margin):
     best = T.root
     best_d = get_distance(best, s_diffs, Ns)
     children = best.clades
-    
+
     while(len(children)):
         #get difference values for all nodes to compare
         dists = np.array([get_distance(n, s_diffs, Ns) for n in children])
@@ -120,30 +120,30 @@ def find_closest(T, s_diffs, Ns, margin):
         if min_d < best_d:
             best = children[np.argmin(dists)]
             best_d = min_d
-            
-        #if the distance is 0 return best node  
+
+        #if the distance is 0 return best node
         if best_d == 0:
             return best, best_d
-        
+
         #select nodes that are within margin around current best node
         min_nodes = [children[idx] for idx in np.where(dists<(best_d+margin))[0]]
 
         #there are nodes within margin --> continue search for closest node
         children = [c for l in [n.clades for n in min_nodes] for c in l]
-        
+
     #return best child
     return best, best_d
-    
+
 def find_closest_brute(T, s_diffs, Ns, margin):
     """
     brute_force algorithm to find closest Clade in phylogenetic tree of focal-alignment
     given input sequence data
-    
+
     Parameters
     ----------
     T : Bio.Phylo.Newick.Tree
         phylogenetic tree of focal-alignment.
-    s_diffs : set of tuples (int, str) 
+    s_diffs : set of tuples (int, str)
         differences of input sequence to reference sequence.
     Ns : set of int
         positions in input sequence which contain ambiguous bases or gap characters.
@@ -160,7 +160,7 @@ def find_closest_brute(T, s_diffs, Ns, margin):
     """
     best = T.root
     d = get_distance(best, s_diffs, Ns)
-    
+
     for n in T.find_clades():
         new_d = get_distance(n,s_diffs,Ns)
         if new_d<d:
@@ -170,15 +170,15 @@ def find_closest_brute(T, s_diffs, Ns, margin):
 
 def export_tree(T, metadata):
     """
-    exports a tree and the metadata (s_diffs, Ns) for each Clade to 
+    exports a tree and the metadata (s_diffs, Ns) for each Clade to
     a tree.nwk and metadata.json file
-    
+
     Parameters
     ----------
     T : Bio.Phylo.Newick.Tree
         phylogenetic tree to export.
     metadata : dict
-        dictionary that contains the s_diffs and Ns values 
+        dictionary that contains the s_diffs and Ns values
         for each Clade in the tree.
 
     Returns
@@ -189,13 +189,13 @@ def export_tree(T, metadata):
     Phylo.write(T, 'exports/tree.nwk', 'newick')
     with open('exports/metadata.json', 'w') as out_file:
         json.dump(metadata, out_file)
-    
+
 def build_tree(focal_alignment):
     """
     Parameters
     ----------
     focal_alignment : path-like
-        path to a fasta file containing the sequences to build the 
+        path to a fasta file containing the sequences to build the
         focal-alignment tree.
 
     Returns
@@ -213,16 +213,16 @@ def build_tree(focal_alignment):
     tt = TreeAnc(tree=T, aln=focal_alignment)
     tt.infer_ancestral_sequences(reconstruct_tip_states=False)
     tt.prune_short_branches()
-    tt.optimize_tree()    
+    tt.optimize_tree()
     return tt.tree
 
 def align(T, alignment, ref, method, margin, output):
     """
     Finds closest Clade in T for each sequence in alignment using the specified
-    search function. 
+    search function.
     Writes the results to a .tsv file with columns ['strain','distance','closest strain']
     (closest strain) is only saved if it is a terminal node.
-    
+
     Parameters
     ----------
     T : Bio.Phylo.Newick.Tree
@@ -246,11 +246,11 @@ def align(T, alignment, ref, method, margin, output):
     i = 0
     print('Finding closest node:')
     with open(output, 'w', newline='') as out_file:
-        
+
         tsv_writer = csv.writer(out_file, delimiter = '\t')
         header = ['strain','distance','closest strain']
         tsv_writer.writerow(header)
-        
+
         with open(alignment) as fh:
             for l,s in SimpleFastaParser(fh):
                 i+=1
@@ -259,16 +259,16 @@ def align(T, alignment, ref, method, margin, output):
 
                 s_diffs, Ns = get_differences(np.array(list(s.upper())), ref)
                 n,d = method(T,s_diffs,Ns,margin)
-                
+
                 if n.name.startswith('NODE'):
                     row = [l,d,'-']
                 else:
                     row = [l,d,n.name]
-                    
+
                 tsv_writer.writerow(row)
     print('Table of closest nodes has been exported to %s.'%(output))
-                
-                
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -280,21 +280,21 @@ if __name__ == '__main__':
     parser.add_argument("--alignment", type=str, required=False, help="FASTA file of alignment")
     parser.add_argument("--tree", type=str, required = False, help="nwk file of focal alignment tree")
     parser.add_argument("--metadata", type=str, required = False, help="json file of focal alignment tree metadata")
-    parser.add_argument("--export", type=bool,default = False ,required = True, help="export tree and metadata to tree.nwk and metadata.json")
-    parser.add_argument("--method", type=int, default = 0 ,required = False, help="0: brute_force_method, 1: iterative method")
+    parser.add_argument("--export", type=bool, default=False , required=False, help="export tree and metadata to tree.nwk and metadata.json")
+    parser.add_argument("--method", type=str, default='recursive', required=False, choices=['brute', 'recursive'], help="choose between brute force search or recursive search")
     parser.add_argument("--margin", type=int, default = 6 ,required = False, help="margin for iterative search")
     parser.add_argument("--output", type=str, required=False, help="table with closest sequences")
     args = parser.parse_args()
 
-    
+
     ref = np.array(SeqIO.read(args.reference, 'fasta').seq)
-    
+
     #load tree or build tree
     if args.tree is not None:
         T = Phylo.read(args.tree, "newick")
     else:
-        T = build_tree(args.focal_alignment, ref)
-    
+        T = build_tree(args.focal_alignment)
+
     #load metadata or get metadata from Tree
     if args.metadata is not None:
         with open(args.metadata, 'r') as fh:
@@ -307,19 +307,18 @@ if __name__ == '__main__':
         metadata = {}
         for n in T.find_clades():
             n.differences, n.Ns = get_differences(n.sequence, ref)
-            metadata[n.name]=[dict(n.differences),list(n.Ns)]        
-    
-    #export metadata and tree 
+            metadata[n.name]=[dict(n.differences),list(n.Ns)]
+
+    #export metadata and tree
     if args.export==True:
         export_tree(T, metadata)
         print("Tree and metadata saved in 'exports/' folder")
-    
+
     #find closest node with specified method
-    if args.method == 0:        
-        p = remove_close_children(T)
-        align(p, args.alignment, ref, find_closest_brute, args.margin, args.output)
-    elif args.method == 1:
-        p = remove_close_children(T) 
-        align(p, args.alignment, ref, find_closest, args.margin, args.output)
-    else:
-        print('Input for method needs to be either 0 or 1. Your input: %i'%(args.method))   
+    p = remove_close_children(T)
+    if args.method == 'recursive':
+        method = find_closest
+    elif args.method == 'brute':
+        method = find_closest_brute
+
+    align(p, args.alignment, ref, method, args.margin, args.output)
